@@ -1,0 +1,22 @@
+{
+  "name": "coolify-cli-installer",
+  "version": "1.0.0",
+  "description": "Install Coolify without hassle",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "build": "pkg --output bin/coolify-installer --target host index.js"
+  },
+  "dependencies": {
+    "inquirer": "^7.3.3",
+    "is-valid-domain": "^0.0.17",
+    "js-yaml": "^4.0.0",
+    "shelljs": "^0.8.4",
+    "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7",
+    "pkg": "^4.4.9"
+  }
+}

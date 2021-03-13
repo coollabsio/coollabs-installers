@@ -1,0 +1,21 @@
+{
+    "version": "3.8",
+    "services": {
+      "mongodb": {
+        "image": "bitnami/mongodb:4.4",
+        "hostname": "coollabs-mongodb",
+        "environment": [],
+        "volumes": [
+          "coollabs-mongodb-data:/bitnami/mongodb"
+        ],
+        "networks": [
+          "${DOCKER_NETWORK}"
+        ]
+      }
+    },
+    "volumes": {
+      "coollabs-mongodb-data": {
+        "external": true
+      }
+    }
+  }
