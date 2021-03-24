@@ -237,6 +237,9 @@ Webhook Secret: <it should be super secret>
 Contents: Read-only
 Metadata: Read-only
 
+# User permissions
+Email addresses: Read-only
+
 # Subscribe to events: 
 Push -> Check!
 
@@ -333,6 +336,7 @@ async function installCoolify() {
         GITHUP_APP_WEBHOOK_SECRET=${answers.github.app.webhookSecret}
         `
     console.log("\n\nEverything is ready! Now let me install Coolify itself. It will take some minutes... Grab a tea or coffee!")
+    shell.exec('sudo apt update && sudo apt -y install git')
     shell.exec('GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone https://github.com/coollabsio/coolify.git coolify-source')
     fs.writeFileSync('./coolify-source/.env', envFile)
     shell.cd('coolify-source');
