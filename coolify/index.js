@@ -153,14 +153,15 @@ async function installCoolify() {
 
 }
 async function installationBasedOnPreviousConfiguration() {
+
     console.log('\n## Installing basic libraries')
     shell.exec('apt update')
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
     publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short').stdout.replace(/\s+/g, ' ').trim()
     const nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`).stdout.replace(/\s+/g, ' ').trim()
+
     if (nslookup !== publicAddress) {
-        console.log(`\n\n${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!\n\n`.bold.red)
-        throw new Error(`\n\n${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!\n\n`.bold.red)
+        throw new Error(`${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!`)
     }
 
     const isDockerOK = await checkDocker()
@@ -343,7 +344,7 @@ async function customInstallation() {
 
     const nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`).stdout.replace(/\s+/g, ' ').trim()
     if (nslookup !== publicAddress) {
-        throw new Error(`\n\n${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!\n\n`.bold.red)
+        throw new Error(`${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!`)
     }
     console.log('\n## Docker related questions')
     const docker = await inquirer
@@ -367,7 +368,7 @@ async function customInstallation() {
 
     console.log('\n## MongoDB related questions')
 
-    const {required} = await inquirer
+    const { required } = await inquirer
         .prompt([
             {
                 type: 'confirm',
@@ -477,7 +478,7 @@ async function coolifyMe() {
         if (isOriginalConfFileExists || isConfFileExists) {
             if (isOriginalConfFileExists) configJson = JSON.parse(fs.readFileSync(originalConfigFile).toString('utf8'))
             if (isConfFileExists) configJson = JSON.parse(fs.readFileSync(newConfigFile).toString('utf8'))
- 
+
             answer = await inquirer
                 .prompt([
                     {
