@@ -472,11 +472,6 @@ async function coolifyMe() {
         const originalConfigFile = './coolify-source/config.json';
         const newConfigFile = './config.json';
         shell.config.silent = !options.debug;
-        const user = shell.exec('whoami').stdout.trim().toString()
-        if (user !== "root") {
-            throw new Error('You need to run this script with root user or with sudo, like: `sudo sh <(curl -fsSL https://get.coollabs.io/install.sh) coolify -d`')
-        }
-        console.log('## HINT: For debug mode run: sh <(curl -fsSL https://get.coollabs.io/install.sh) coolify -d\n')
         const isOriginalConfFileExists = fs.existsSync(originalConfigFile)
         const isConfFileExists = fs.existsSync(newConfigFile)
         if (isOriginalConfFileExists || isConfFileExists) {
