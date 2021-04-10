@@ -19,6 +19,7 @@ let mongodbJson = require('./mongodb.json')
 let networkName = 'coollabs'
 let configJson = {}
 let publicAddress = null
+let nslookup = null
 
 let answers = {
     general: {
@@ -152,18 +153,29 @@ async function installCoolify() {
     console.log(`\n\nWe are done - what a ride! Visit https://${answers.general.domain} to access your cool application! :)`)
 
 }
-async function installationBasedOnPreviousConfiguration() {
 
-    console.log('\n## Installing basic libraries')
-    shell.exec('apt update')
-    shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
-    publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short').stdout.replace(/\s+/g, ' ').trim()
-    const nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`).stdout.replace(/\s+/g, ' ').trim()
-
+function getAddresses(answers){
+    publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short')
+    if (publicAddress.code !== 0 || publicAddress.stdout === '') {
+        throw new Error(`Cannot query your public address against whoami.akamai.net. Please report the problem on Github!`)
+    } else {
+        publicAddress = publicAddress.stdout.replace(/\s+/g, ' ').trim()
+    }
+    nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`)
+    if (nslookup.code !== 0 || nslookup.stdout === '') {
+        throw new Error(`Your domain ${answers.general.domain} has no A address set at your DNS service provider.`)
+    } else {
+        nslookup = nslookup.stdout.replace(/\s+/g, ' ').trim()
+    }
     if (nslookup !== publicAddress) {
         throw new Error(`${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!`)
     }
-
+}
+async function installationBasedOnPreviousConfiguration() {
+    console.log('\n## Installing basic libraries')
+    shell.exec('apt update')
+    shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
+    getAddresses(answers)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
     await installMongodb()
@@ -177,7 +189,7 @@ async function generalQuestions() {
             {
                 type: 'input',
                 name: 'domain',
-                message: `Enter a <domain> for Coolify - example 'coollabs.io' or 'coolify.coollabs.io' without http/https:`,
+                message: `Please set the correct DNS entry before proceeding!\n\nEnter a <domain> for Coolify - example 'coollabs.io' or 'coolify.coollabs.io' without http/https:`,
                 validate: function (value) {
                     if (value) {
                         if (isDomain(value)) {
@@ -311,9 +323,10 @@ async function customInstallation() {
     console.log('\n## Installing basic libraries')
     shell.exec('apt update')
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
-    publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short').stdout.replace(/\s+/g, ' ').trim()
 
     await generalQuestions()
+    getAddresses(answers)
+
     const configuration = await inquirer
         .prompt([
             {
@@ -341,11 +354,6 @@ async function customInstallation() {
                 default: generateRandom(32)
             }])
     answers.general = { ...answers.general, ...configuration }
-
-    const nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`).stdout.replace(/\s+/g, ' ').trim()
-    if (nslookup !== publicAddress) {
-        throw new Error(`${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!`)
-    }
     console.log('\n## Docker related questions')
     const docker = await inquirer
         .prompt([
@@ -448,14 +456,8 @@ async function expressInstallation() {
     console.log('\n## Installing basic libraries')
     shell.exec('apt update')
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
-    publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short').stdout.replace(/\s+/g, ' ').trim()
-
     await generalQuestions()
-
-    const nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`).stdout.replace(/\s+/g, ' ').trim()
-    if (nslookup !== publicAddress) {
-        throw new Error(`\n\n${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!\n\n`.bold.red)
-    }
+    getAddresses(answers)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
     await installMongodb()
