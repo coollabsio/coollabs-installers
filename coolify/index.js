@@ -84,6 +84,12 @@ async function checkDocker() {
     }
     return true
 }
+async function configureDocker() {
+    console.log('\n## Initiating Docker Swarm.')
+    shell.exec(`docker swarm init --advertise-addr ${publicAddress}`)
+    console.log('\n## Creating Docker network.')
+    shell.exec(`docker network create ${answers.docker.networkName} --driver overlay`)
+}
 async function installDocker() {
     console.log('\n## Installing Docker Engine')
     shell.exec('apt-get remove docker docker-engine docker.io containerd runc')
@@ -92,10 +98,6 @@ async function installDocker() {
     shell.exec('add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"')
     shell.exec('apt-get update')
     shell.exec('apt-get install -y docker-ce docker-ce-cli containerd.io')
-    console.log('\n## Initiating Docker Swarm.')
-    shell.exec(`docker swarm init --advertise-addr ${publicAddress}`)
-    console.log('\n## Creating Docker network.')
-    shell.exec(`docker network create ${answers.docker.networkName} --driver overlay`)
     shell.set('+e')
 }
 async function installMongodb() {
@@ -148,13 +150,14 @@ async function installCoolify() {
     shell.exec('GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone https://github.com/coollabsio/coolify.git coolify-source')
     fs.writeFileSync('./coolify-source/.env', envFile)
     shell.cd('coolify-source');
-    shell.exec(`bash ./install.sh all`)
+    shell.exec('docker build --label coolify-reserve=true -t coolify -f install/Dockerfile-new .')
+    shell.exec('set -a && source .env && set +a && envsubst < install/coolify-template.yml | docker stack deploy -c - coollabs-coolify', { shell: '/bin/bash' })
     console.log(`\nThe initial Let's Encrypt certificate requests could be slow, so be patient if you deploy a new application.`)
     console.log(`\n\nWe are done - what a ride! Visit https://${answers.general.domain} to access your cool application! :)`)
 
 }
 
-function getAddresses(answers){
+function getAddresses(answers) {
     publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short')
     if (publicAddress.code !== 0 || publicAddress.stdout === '') {
         throw new Error(`Cannot query your public address against whoami.akamai.net. Please report the problem on Github!`)
@@ -178,6 +181,7 @@ async function installationBasedOnPreviousConfiguration() {
     getAddresses(answers)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
+    await configureDocker()
     await installMongodb()
     await installCoolify()
     saveConfig()
@@ -373,6 +377,7 @@ async function customInstallation() {
     answers.docker = { ...docker }
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
+    await configureDocker()
 
     console.log('\n## MongoDB related questions')
 
@@ -460,6 +465,7 @@ async function expressInstallation() {
     getAddresses(answers)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
+    await configureDocker()
     await installMongodb()
     await githubQuestions()
     await installCoolify()
