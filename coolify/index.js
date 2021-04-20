@@ -151,13 +151,15 @@ async function installCoolify() {
     fs.writeFileSync('./coolify-source/.env', envFile)
     shell.cd('coolify-source');
     shell.exec('docker build --label coolify-reserve=true -t coolify -f install/Dockerfile-new .')
-    shell.exec('set -a && source .env && set +a && envsubst < install/coolify-template.yml | docker stack deploy -c - coollabs-coolify', { shell: '/bin/bash' })
+    // Old installer
+    // shell.exec('bash install.sh all')
+    shell.exec('docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /data/coolify:/data/coolify -u root -w /usr/src/app coolify bash -c \'set -a && source .env && set +a && envsubst < install/coolify-template.yml | docker stack deploy -c - coollabs-coolify\'', { shell: '/bin/bash' })
     console.log(`\nThe initial Let's Encrypt certificate requests could be slow, so be patient if you deploy a new application.`)
     console.log(`\n\nWe are done - what a ride! Visit https://${answers.general.domain} to access your cool application! :)`)
 
 }
 
-function getAddresses(answers) {
+async function getAddresses(answers, silent) {
     publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short')
     if (publicAddress.code !== 0 || publicAddress.stdout === '') {
         throw new Error(`Cannot query your public address against whoami.akamai.net. Please report the problem on Github!`)
@@ -171,14 +173,29 @@ function getAddresses(answers) {
         nslookup = nslookup.stdout.replace(/\s+/g, ' ').trim()
     }
     if (nslookup !== publicAddress) {
-        throw new Error(`${answers.general.domain} not matching with ${publicAddress} - it's ${nslookup}, please check again!\nIt's possible that DNS propogation needs some minutes between DNS servers. Be patient and try again later!`)
+        if (!silent) {
+            const { shouldContinue } = await inquirer
+                .prompt([
+                    {
+                        type: 'confirm',
+                        name: 'shouldContinue',
+                        message: `The IP address of ${answers.general.domain}(${nslookup}) not matching with ${publicAddress}.\n\nIt's possible that the DNS is not propogated yet. Usually it takes 24/48 hours, but most of the times just minutes, or your domain is behind a CDN, like Cloudflare!\nIs ${answers.general.domain} behind a CDN?`,
+                        validate: function (value) {
+                            if (value) {
+                                return true
+                            }
+                            return 'Required option!';
+                        }
+                    }])
+            if (!shouldContinue) throw new Error('Exiting.')
+        }
     }
 }
 async function installationBasedOnPreviousConfiguration() {
     console.log('\n## Installing basic libraries')
     shell.exec('apt update')
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
-    getAddresses(answers)
+    await getAddresses(answers, true)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
     await configureDocker()
@@ -329,7 +346,7 @@ async function customInstallation() {
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
 
     await generalQuestions()
-    getAddresses(answers)
+    await getAddresses(answers)
 
     const configuration = await inquirer
         .prompt([
@@ -462,7 +479,7 @@ async function expressInstallation() {
     shell.exec('apt update')
     shell.exec('apt-get install -y bind9-dnsutils apt-transport-https ca-certificates curl gnupg-agent software-properties-common bind9-dnsutils git')
     await generalQuestions()
-    getAddresses(answers)
+    await getAddresses(answers)
     const isDockerOK = await checkDocker()
     if (!isDockerOK) await installDocker()
     await configureDocker()
