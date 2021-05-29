@@ -160,12 +160,14 @@ async function installCoolify() {
 }
 
 async function getAddresses(answers, silent) {
-    publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short')
+    publicAddress = shell.exec('wget -qO- http://ipecho.net/plain')
     if (publicAddress.code !== 0 || publicAddress.stdout === '') {
-        throw new Error(`Cannot query your public address against whoami.akamai.net. Please report the problem on Github!`)
-    } else {
-        publicAddress = publicAddress.stdout.replace(/\s+/g, ' ').trim()
+        publicAddress = shell.exec('dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short')
+        if (publicAddress.code !== 0 || publicAddress.stdout === '') {
+            throw new Error(`Cannot query your public address against whoami.akamai.net & ipecho.net. Please report the problem on Github!`)
+        }
     }
+    publicAddress = publicAddress.stdout.replace(/\s+/g, ' ').trim()
     nslookup = shell.exec(`dig @1.1.1.1 A ${answers.general.domain} +short`)
     if (nslookup.code !== 0 || nslookup.stdout === '') {
         throw new Error(`Your domain ${answers.general.domain} has no A address set at your DNS service provider.`)
