@@ -267,12 +267,14 @@ Webhook Secret: <it should be super secret>
 # Repository permissions:
 Contents: Read-only
 Metadata: Read-only
+Pull requests: Read-only
 
 # User permissions
 Email addresses: Read-only
 
 # Subscribe to events: 
 Push -> Check!
+Pull request -> Check!
 
 Are you ready to continue?`,
                 validate: function (value) {
