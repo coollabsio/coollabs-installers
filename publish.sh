@@ -1,0 +1,1 @@
+docker build -t coollabs-installer -f Dockerfile . && docker tag coollabs-installer coollabsio/coollabs-installer:latest && docker push coollabsio/coollabs-installer:latest
