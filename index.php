@@ -89,8 +89,8 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
 
     dump_chunk('Removing old MongoDB... ');
     $starttime = microtime(true);
-    system('docker stack rm coollabs-mongodb >/dev/null && sleep 10');
-    system('docker volume rm -f coollabs-mongodb-data >/dev/null');
+    system('docker stack ps coollabs-mongodb && docker stack rm coollabs-mongodb >/dev/null && sleep 10');
+    system('docker volume inspect coollabs-mongodb-data && docker volume rm -f coollabs-mongodb-data >/dev/null');
     $endtime = microtime(true);
     $timediff = round(($endtime - $starttime) * 1000);
     dump_chunk("$timediff ms<br/>");
