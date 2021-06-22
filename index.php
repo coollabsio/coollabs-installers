@@ -196,6 +196,52 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
         <div id="console">
             <div class="font-mono text-xs bg-black rounded p-10">
                 <?php
+                if (isset($query['onlyCoolify']) && isset($query['domain']) && isset($query['email'])) {
+                    global $query;
+                    $domain =  $query['domain'];
+                    $email =  $query['email'];
+                    $myfile = fopen(".env", "w") or die("Unable to open file!");
+                    $txt = "DOMAIN=$domain\n";
+                    fwrite($myfile, $txt);
+                    $txt = "EMAIL=$email\n";
+                    fwrite($myfile, $txt);
+                    $txt = "JWT_SIGN_KEY=" . random_str(14) . "\n";
+                    fwrite($myfile, $txt);
+                    $txt = "SECRETS_ENCRYPTION_KEY=" . random_str(32) . "\n";
+                    fwrite($myfile, $txt);
+                    $txt = "DOCKER_ENGINE=/var/run/docker.sock\n";
+                    fwrite($myfile, $txt);
+                    $txt = "DOCKER_NETWORK=coollabs\n";
+                    fwrite($myfile, $txt);
+                    $txt = "MONGODB_HOST=coollabs-mongodb\n";
+                    fwrite($myfile, $txt);
+                    $txt = "MONGODB_PORT=27017\n";
+                    fwrite($myfile, $txt);
+                    $mongodbRootPassword = random_str(19);
+                    $txt = "MONGODB_ROOT_PASSWORD={$mongodbRootPassword}\n";
+                    fwrite($myfile, $txt);
+                    $mongodbUser = random_str(12);
+                    $txt = "MONGODB_USER={$mongodbUser}\n";
+                    fwrite($myfile, $txt);
+                    $mongodbPassword = random_str(18);
+                    $txt = "MONGODB_PASSWORD={$mongodbPassword}\n";
+                    fwrite($myfile, $txt);
+                    $mongodbDB = "coolify";
+                    $txt = "MONGODB_DB={$mongodbDB}\n";
+                    fwrite($myfile, $txt);
+                    $txt = "VITE_GITHUB_APP_CLIENTID=null\n";
+                    fwrite($myfile, $txt);
+                    $txt = "VITE_GITHUB_APP_NAME=null\n";
+                    fwrite($myfile, $txt);
+                    $txt = "GITHUB_APP_CLIENT_SECRET=null\n";
+                    fwrite($myfile, $txt);
+                    $txt = "GITHUB_APP_PRIVATE_KEY=null\n";
+                    fwrite($myfile, $txt);
+                    $txt = "GITHUP_APP_WEBHOOK_SECRET=null\n";
+                    fwrite($myfile, $txt);
+                    fclose($myfile);
+                    installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPassword, $mongodbDB);
+                }
                 if (isset($query['code']) && isset($query['state'])) {
                     global $query;
                     $code = $query['code'];
@@ -297,7 +343,16 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
                     </div>
                 </div>
             </div>
-            <div id="github" class="py-6 space-y-4">
+            <div id="isGithubIntegrationRequired" class="py-6">
+                <div>
+                    <input type="checkbox" id="isGithubIntegrationRequiredCheck" name="isGithubIntegrationRequiredCheck" onclick="isGithubIntegrationRequired()" />
+                    <label for="isGithubIntegrationRequired" class="text-sm">Do you need GitHub Integration?</label>
+                    <div class="text-xs text-gray-300 mt-1" for="isGithubIntegrationRequired">
+                        If you only want to use our services, you do not need GitHub Integration. <br />Only required if you would like to deploy your applications with Coolify from GitHub.
+                    </div>
+                </div>
+            </div>
+            <div id="github" class="pb-6 space-y-4" style="display:none">
                 <div>
                     <input type="checkbox" id="isOrganization" name="isOrganization" onclick="isOrgranization()" />
                     <label for="isOrganization" class="text-sm">Are you installing for a GitHub organization?</label>
@@ -307,7 +362,7 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
                 </div>
                 <div id="isOrg" style="display:none">
                     <div>
-                        <label for="email" class="block text-sm font-medium text-white">GitHub Organization name</label>
+                        <label class="block text-sm font-medium text-white">GitHub Organization name</label>
                         <div class="mt-1">
                             <input type="input" id="organization" name="organization" class=" py-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="coollabsio" aria-describedby="github-organization">
                         </div>
@@ -315,7 +370,7 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
                 </div>
             </div>
             <div class="text-center">
-                <button class="rainbow-button mx-auto" type="submit" id="registerGithub" name="registerGithub" onclick="registerGH()">
+                <button class="rainbow-button mx-auto" type="submit" id="registerGithub" name="registerGithub" onclick="installCoolify()">
                     <div class="p-2 px-4 font-bold text-xl transform duration-200  hover:scale-110"> Get started 🚀</div>
                 </button>
             </div>
@@ -330,60 +385,68 @@ function installCoolify($domain, $mongodbRootPassword, $mongodbUser, $mongodbPas
                 document.getElementById("console").style.display = 'none'
             }
 
-            function registerGH() {
-                if (document.getElementById("domain").value && document.getElementById("email").value) {
-                    let url = 'settings/apps/new';
-                    const local = window.location.host;
-                    const domain = document.getElementById("domain").value
-                    const email = document.getElementById("email").value
-                    const isOrgranization = document.getElementById("isOrganization").checked
-                    const organization = document.getElementById("organization").value ? true : false
-                    if (isOrgranization || organization) {
-                        if (document.getElementById("organization").value) {
-                            url = `organizations/${document.getElementById("organization").value}/settings/apps/new`;
+            function installCoolify() {
+                if (document.getElementById("isGithubIntegrationRequiredCheck").checked) {
+                    if (document.getElementById("domain").value && document.getElementById("email").value) {
+                        let url = 'settings/apps/new';
+                        const local = window.location.host;
+                        const domain = document.getElementById("domain").value
+                        const email = document.getElementById("email").value
+                        const isOrgranization = document.getElementById("isOrganization").checked
+                        const organization = document.getElementById("organization").value ? true : false
+                        if (isOrgranization || organization) {
+                            if (document.getElementById("organization").value) {
+                                url = `organizations/${document.getElementById("organization").value}/settings/apps/new`;
+                            }
                         }
+                        const data = JSON.stringify({
+                            name: `coolify-${domain}`,
+                            url: `https://${domain}`,
+                            hook_attributes: {
+                                url: `https://${domain}/api/v1/webhooks/deploy`
+                            },
+                            redirect_url: `http://${local}/`,
+                            callback_urls: [`https://${domain}/api/v1/login/github/app`],
+                            public: false,
+                            request_oauth_on_install: true,
+                            default_permissions: {
+                                contents: 'read',
+                                metadata: 'read',
+                                pull_requests: 'read',
+                                emails: 'read'
+                            },
+                            default_events: ['pull_request', 'push']
+                        });
+
+                        const form = document.createElement("form");
+                        form.setAttribute("method", "post");
+                        form.setAttribute("action", `https://github.com/${url}?state=${email}`);
+                        const input = document.createElement("input")
+                        input.setAttribute("id", "manifest")
+                        input.setAttribute("name", "manifest")
+                        input.setAttribute("type", "hidden")
+                        input.setAttribute("value", data)
+                        form.appendChild(input)
+                        document.getElementsByTagName("body")[0].appendChild(form);
+                        form.submit()
                     }
-                    const data = JSON.stringify({
-                        name: `coolify-${domain}`,
-                        url: `https://${domain}`,
-                        hook_attributes: {
-                            url: `https://${domain}/api/v1/webhooks/deploy`
-                        },
-                        redirect_url: `http://${local}/`,
-                        callback_urls: [`https://${domain}/api/v1/login/github/app`],
-                        public: false,
-                        request_oauth_on_install: true,
-                        default_permissions: {
-                            contents: 'read',
-                            metadata: 'read',
-                            pull_requests: 'read',
-                            emails: 'read'
-                        },
-                        default_events: ['pull_request', 'push']
-                    });
-
-                    const form = document.createElement("form");
-                    form.setAttribute("method", "post");
-                    form.setAttribute("action", `https://github.com/${url}?state=${email}`);
-                    const input = document.createElement("input")
-                    input.setAttribute("id", "manifest")
-                    input.setAttribute("name", "manifest")
-                    input.setAttribute("type", "hidden")
-                    input.setAttribute("value", data)
-                    form.appendChild(input)
-                    document.getElementsByTagName("body")[0].appendChild(form);
-                    form.submit()
+                } else {
+                    if (document.getElementById("domain").value && document.getElementById("email").value) {
+                        window.location = `/?onlyCoolify&domain=${document.getElementById("domain").value}&email=${document.getElementById("email").value}`
+                    }
                 }
+            }
 
+            function isGithubIntegrationRequired() {
+                const github = document.getElementById("github");
+                github.style.display === "none" ? github.style.display = "block" : github.style.display = "none"
             }
 
             function isOrgranization() {
                 const isOrg = document.getElementById("isOrg");
                 isOrg.style.display === "none" ? isOrg.style.display = "block" : isOrg.style.display = "none"
-
             }
         </script>
 </body>
-
 
 </html>
